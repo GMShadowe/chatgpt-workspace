@@ -1,11 +1,19 @@
 import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { createClient } from "@supabase/supabase-js";
+import "dotenv/config";
 import express from "express";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { CallToolRequestSchema, ListToolsRequestSchema, } from "@modelcontextprotocol/sdk/types.js";
-const PORT = Number(process.env.PORT ?? 3001);
+const PORT = Number(process.env.PORT ?? 4100);
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    throw new Error("Missing Supabase environment variables");
+}
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const WORKSPACE = path.resolve(process.env.WORKSPACE_PATH ?? "../workspace");
 function safePath(input) {
     const resolved = path.resolve(WORKSPACE, input);
@@ -302,6 +310,28 @@ app.get("/", (_req, res) => {
         status: "online",
         endpoint: "/mcp",
     });
+});
+app.get("/supabase-test", async (_req, res) => {
+    const { data, error } = await supabase
+        .from("spaces")
+        .select("id, name, slug")
+        .limit(5);
+    if (error) {
+        res.status(500).json({ error: error.message });
+        return;
+    }
+    res.json(data);
+});
+const supabaseAdmin = createClient(SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+app.get("/supabase-admin-test", async (_req, res) => {
+    const { data, error } = await supabaseAdmin
+        .from("spaces")
+        .select("id, user_id, name, slug");
+    if (error) {
+        res.status(500).json({ error: error.message });
+        return;
+    }
+    res.json(data);
 });
 async function main() {
     await fs.mkdir(WORKSPACE, {
