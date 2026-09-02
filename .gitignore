@@ -39,3 +39,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+.env
+
+# MCP server
+/mcp-server/dist/
+/mcp-server/node_modules/
+
+# Runtime workspaces
+/workspace/
